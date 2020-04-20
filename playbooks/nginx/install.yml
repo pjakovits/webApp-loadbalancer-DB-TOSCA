@@ -2,22 +2,11 @@
 - hosts: all
   become: yes
   tasks:
+
     - name: Install EPEL repo
       package:
-        name: 
+        name:
           - epel-release
-    - name: install the package from a remote repo
-      yum:
-        name: http://rpms.remirepo.net/enterprise/remi-release-7.rpm
-        state: present
-    - name: Install EPEL repo
-      yum:
-        name: 
-          - yum-utils
-    - name: Enable remi repo
-      shell: |
-        sudo yum-config-manager --enable remi-php72 -y
-        sudo yum update -y
 
 
     - name: Install nginx

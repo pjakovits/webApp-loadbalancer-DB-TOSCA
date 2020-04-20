@@ -1,5 +1,4 @@
 tosca_definitions_version: tosca_simple_yaml_1_3
-
 node_types:
   my.nodes.VM.OpenStack:
     derived_from: tosca.nodes.Compute
@@ -49,10 +48,18 @@ node_types:
       remote_host_ip:
         type: string
         description: Location of nginx site configs
+    requirements:
+      - connectToLB:
+          capability: tosca.capabilities.Endpoint
+          node: my.nodes.Nginx.loadBalancer
+          relationship: radon.relationships.LB_WebApp  
     capabilities:
       host:
-        type: tosca.capabilities.Compute
-        valid_source_types: [my.nodes.Nginx.Site]
+         type: tosca.capabilities.Compute
+         valid_source_types: [my.nodes.Nginx.Site]
+#      connectToLB:
+#         type: tosca.capabilities.Endpoint
+#         valid_source_types: [my.nodes.Nginx.loadBalancer]
     interfaces:
       Standard:
         type: tosca.interfaces.node.lifecycle.Standard
@@ -63,6 +70,9 @@ node_types:
           delete:
             implementation:
               primary: playbooks/nginx/uninstall.yml
+
+
+
   my.nodes.Nginx.loadBalancer:
     derived_from: tosca.nodes.SoftwareComponent
     attributes:
@@ -72,12 +82,15 @@ node_types:
       remote_host_ip:
         type: string
         description: Location of nginx site configs
-    requirements:
-      - connectToLB:
-          capability: tosca.capabilities.Endpoint
-          node: my.nodes.Nginx.Site
-          relationship: radon.relationships.LB_WebApp
-          occurrences: [0, 1]
+    capabilities:
+      connectToLB:
+         type: tosca.capabilities.Endpoint
+         valid_source_types: [my.nodes.Nginx]
+#    requirements:
+#      - connectToLB:
+#          capability: tosca.capabilities.Endpoint
+#          node: my.nodes.Nginx
+#          relationship: radon.relationships.LB_WebApp
     interfaces:
       Standard:
         type: tosca.interfaces.node.lifecycle.Standard
@@ -89,6 +102,8 @@ node_types:
             implementation:
               primary: playbooks/lb/uninstall.yml
 
+
+
   my.nodes.Nginx.Site:
     derived_from: tosca.nodes.SoftwareComponent
     properties:
@@ -99,11 +114,6 @@ node_types:
       - host:
           capability: tosca.capabilities.Compute
           relationship: my.relationships.NginxSiteHosting
-    capabilities:
-      connectToLB:
-          type: tosca.capabilities.Endpoint
-          valid_source_types: [ my.nodes.Nginx.loadBalancer ]
-          occurrences: [0, UNBOUNDED]
     interfaces:
       Standard:
         type: tosca.interfaces.node.lifecycle.Standard
@@ -124,12 +134,12 @@ relationship_types:
      # valid_target_types: [ my.nodes.Nginx.loadBalancer ]
      interfaces:
         Configure:
-          operations:
-              post_configure_source:
-                inputs:
-                  LB_end_point_IP: { default: { get_attribute: [SOURCE, host, public_address] } }
-                  WebApp_end_points_IP: { default: { get_attribute: [TARGET, host, host, public_address] } }
-                implementation:
+          operations:   
+            post_configure_target:
+              inputs:
+#                LB_end_point_IP: { default: { get_attribute: [TARGET, host, public_address] } }
+                WebApp_end_points_IP: { default: { get_attribute: [SOURCE, host, public_address] } }  
+              implementation:
                   primary: playbooks/nginx/add_webApp.yml
 
   my.relationships.NginxSiteHosting:
@@ -155,11 +165,6 @@ topology_template:
         network: provider_64_net
         key_name: jakovits_ldpc
 
-    nginx-lb:
-      type: my.nodes.Nginx.loadBalancer
-      requirements:
-        - host: vm_loadBalancer
-        - connectToLB: site
 
     vm1:
       type: my.nodes.VM.OpenStack
@@ -171,15 +176,62 @@ topology_template:
         key_name: jakovits_ldpc
 
 
+
+    vm2:
+      type: my.nodes.VM.OpenStack
+      properties:
+        name: nginx_host2pelle
+        image: centos7
+        flavor: m1.xsmall
+        network: provider_64_net
+        key_name: jakovits_ldpc
+
+
+
+
+    nginx-lb:
+      type: my.nodes.Nginx.loadBalancer
+      requirements:
+        - host: vm_loadBalancer
+
+
     nginx:
       type: my.nodes.Nginx
       requirements:
         - host: vm1
+        - connectToLB: nginx-lb
+
 
     site:
       type: my.nodes.Nginx.Site      
       properties:
-            hostname: site
+            hostname: site1
       requirements:
         - host: nginx
+
+
+
+
+
+
+    nginx2:
+      type: my.nodes.Nginx
+      requirements:
+        - host: vm2
+        - connectToLB: nginx-lb
+
+
+
+    site2:
+      type: my.nodes.Nginx.Site
+      properties:
+            hostname: site2
+      requirements:
+        - host: nginx2
+
+
+
+
+
+
 

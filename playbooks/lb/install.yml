@@ -1,9 +1,6 @@
 ---
 - hosts: all
   become: yes
-  vars:
-     server1_ip: "{{ lookup('file', '/tmp/{{server1}}_ip.txt') }}"
-     server2_ip: "{{ lookup('file', '/tmp/{{server2}}_ip.txt') }}"
   tasks:
     - name: Install EPEL repo
       package:
