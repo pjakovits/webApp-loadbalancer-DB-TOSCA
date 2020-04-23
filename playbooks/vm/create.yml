@@ -14,6 +14,7 @@
         boot_from_volume: True
         volume_size: 20
         timeout: 200
+        terminate_volume: True
       register: server_info
 
     - name: Set attributes
